@@ -10,15 +10,37 @@ use Draw\Swagger\Schema\Operation;
 use Draw\Swagger\Schema\PathItem;
 use Draw\Swagger\Schema\Swagger as SwaggerSchema;
 use Draw\Swagger\Schema\Tag;
+use Draw\SwaggerBundle\Route\RouteConditionCheckerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Route;
-use Symfony\Component\Routing\RouterInterface;
 
 class SymfonyContainerSwaggerExtractor implements ExtractorInterface
 {
-    public function __construct(Reader $reader)
+    /**
+     * @var \Doctrine\Common\Annotations\Reader
+     */
+    protected $annotationReader;
+
+    /**
+     * @var string
+     */
+    protected $apiPath;
+
+    /**
+     * @var \Draw\SwaggerBundle\Route\RouteConditionCheckerInterface
+     */
+    protected $conditionChecker;
+
+    /**
+     * @param \Doctrine\Common\Annotations\Reader $reader
+     * @param \Draw\SwaggerBundle\Route\RouteConditionCheckerInterface $conditionChecker
+     * @param string $apiPath
+     */
+    public function __construct(Reader $reader, RouteConditionCheckerInterface $conditionChecker, $apiPath)
     {
         $this->annotationReader = $reader;
+        $this->conditionChecker = $conditionChecker;
+        $this->apiPath = $apiPath;
     }
 
     /**
@@ -68,9 +90,20 @@ class SymfonyContainerSwaggerExtractor implements ExtractorInterface
     ) {
         $router = $source->get('router');
 
+        $basePattern = $this->getBasePattern();
+        $request = $source->get('request_stack');
+
         foreach ($router->getRouteCollection() as $operationId => $route) {
             /* @var \Symfony\Component\Routing\Route $route */
             if(!($path = $route->getPath())) {
+                continue;
+            }
+
+            if (preg_match($basePattern, $path) === 0) {
+                continue;
+            }
+
+            if (!$this->conditionChecker->evaluateRoute($route)) {
                 continue;
             }
 
@@ -128,5 +161,16 @@ class SymfonyContainerSwaggerExtractor implements ExtractorInterface
         }
 
         return false;
+    }
+
+    /**
+     * @return mixed|string
+     */
+    private function getBasePattern()
+    {
+        $basePattern = str_replace('/', '\/', $this->apiPath);
+        $basePattern = '/^(' . $basePattern . ')/';
+
+        return $basePattern;
     }
 }
