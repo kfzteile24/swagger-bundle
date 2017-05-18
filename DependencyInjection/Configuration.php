@@ -32,6 +32,7 @@ class Configuration implements ConfigurationInterface
                     ->end()
                 ->end()
             ->end()
+            ->scalarNode('apiPath')->defaultValue('/')->end()
             ->arrayNode('schema')
                 ->normalizeKeys(false)
                 //->acceptExtraKeys(true)

@@ -17,7 +17,7 @@ services:
 
     draw.swagger.extrator.symfony_container_swagger_extractor:
         class: '%draw.swagger.extrator.symfony_container_swagger_extractor.class%'
-        arguments: ['@annotation_reader']
+        arguments: ['@annotation_reader', '@draw.swagger.route.route_condition_checker', '%draw_swagger.api_path%']
         tags:
             - { name: swagger.extractor }
 
@@ -105,3 +105,12 @@ services:
         arguments: ['@annotations.reader', '@draw.serializer.group_hierarchy']
         tags:
             - { name: swagger.extractor }
+
+    draw.swagger.route.route_condition_checker:
+        class: Draw\SwaggerBundle\Route\RouteConditionChecker
+        arguments: ['@request_stack']
+
+    draw.swagger.drawer.swagger_drawer:
+        class: Draw\SwaggerBundle\Drawer\SwaggerDrawer
+        arguments: ['@draw.swagger', '@service_container', '%draw_swagger.schema%']
+

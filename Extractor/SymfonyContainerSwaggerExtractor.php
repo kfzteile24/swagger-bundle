@@ -10,15 +10,37 @@ use Draw\Swagger\Schema\Operation;
 use Draw\Swagger\Schema\PathItem;
 use Draw\Swagger\Schema\Swagger as SwaggerSchema;
 use Draw\Swagger\Schema\Tag;
+use Draw\SwaggerBundle\Route\RouteConditionCheckerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Route;
-use Symfony\Component\Routing\RouterInterface;
 
 class SymfonyContainerSwaggerExtractor implements ExtractorInterface
 {
-    public function __construct(Reader $reader)
+    /**
+     * @var \Doctrine\Common\Annotations\Reader
+     */
+    protected $annotationReader;
+
+    /**
+     * @var string
+     */
+    protected $apiPath;
+
+    /**
+     * @var \Draw\SwaggerBundle\Route\RouteConditionCheckerInterface
+     */
+    protected $conditionChecker;
+
+    /**
+     * @param \Doctrine\Common\Annotations\Reader $reader
+     * @param \Draw\SwaggerBundle\Route\RouteConditionCheckerInterface $conditionChecker
+     * @param string $apiPath
+     */
+    public function __construct(Reader $reader, RouteConditionCheckerInterface $conditionChecker, $apiPath)
     {
         $this->annotationReader = $reader;
+        $this->conditionChecker = $conditionChecker;
+        $this->apiPath = $apiPath;
     }
 
     /**
@@ -58,24 +80,48 @@ class SymfonyContainerSwaggerExtractor implements ExtractorInterface
             throw new ExtractionImpossibleException();
         }
 
-        $this->triggerRouteExtraction($source->get('router'), $type, $extractionContext);
+        $this->triggerRouteExtraction($source, $type, $extractionContext);
     }
 
-    private function triggerRouteExtraction(RouterInterface $router, SwaggerSchema $schema, ExtractionContextInterface $extractionContext)
-    {
+    private function triggerRouteExtraction(
+        ContainerInterface $source,
+        SwaggerSchema $schema,
+        ExtractionContextInterface $extractionContext
+    ) {
+        $router = $source->get('router');
+
+        $basePattern = $this->getBasePattern();
+        $request = $source->get('request_stack');
+
         foreach ($router->getRouteCollection() as $operationId => $route) {
             /* @var \Symfony\Component\Routing\Route $route */
             if(!($path = $route->getPath())) {
                 continue;
             }
 
-            $controller = explode('::', $route->getDefault('_controller'));
-
-            if(count($controller) != 2) {
+            if (preg_match($basePattern, $path) === 0) {
                 continue;
             }
 
-            list($class, $method) = $controller;
+            if (!$this->conditionChecker->evaluateRoute($route)) {
+                continue;
+            }
+
+            $controller = explode('::', $route->getDefault('_controller'));
+
+            if(count($controller) != 2) {
+                $controllerAsService = explode(':', $route->getDefault('_controller'));
+
+                if (count($controllerAsService) === 2) {
+                    $method = $controllerAsService[1];
+                    $class = get_class($source->get($controllerAsService[0]));
+                } else {
+                    continue;
+                }
+            } else {
+                list($class, $method) = $controller;
+            }
+
 
             $reflectionMethod = new \ReflectionMethod($class, $method);
 
@@ -115,5 +161,16 @@ class SymfonyContainerSwaggerExtractor implements ExtractorInterface
         }
 
         return false;
+    }
+
+    /**
+     * @return mixed|string
+     */
+    private function getBasePattern()
+    {
+        $basePattern = str_replace('/', '\/', $this->apiPath);
+        $basePattern = '/^(' . $basePattern . ')/';
+
+        return $basePattern;
     }
 }
