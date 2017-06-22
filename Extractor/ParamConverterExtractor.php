@@ -156,7 +156,10 @@ class ParamConverterExtractor implements ExtractorInterface
                     return false;
                 }
 
-                return $converter->getConverter() == "fos_rest.request_body";
+                return in_array(
+                    $converter->getConverter(),
+                    ["fos_rest.request_body", "kfz24.commons.json_schema.request_body"]
+                );
             }
         );
 
