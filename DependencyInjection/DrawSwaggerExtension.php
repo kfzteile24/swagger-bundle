@@ -40,6 +40,14 @@ class DrawSwaggerExtension extends Extension implements PrependExtensionInterfac
                 [$alias['class'], $alias['alias']]
             );
         }
+
+        $allowedParamConverters = $container->getParameter('draw.swagger.extractor.param_converter_extractor.allowed');
+
+        foreach ($config['allowedParamConverters'] as $key => $paramConverter) {
+            $allowedParamConverters[] = $paramConverter['name'];
+        }
+
+        $container->setParameter('draw.swagger.extractor.param_converter_extractor.allowed', $allowedParamConverters);
     }
 
     /**
