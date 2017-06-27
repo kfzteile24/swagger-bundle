@@ -25,11 +25,24 @@ class ParamConverterExtractor implements ExtractorInterface
      * @var GroupHierarchy
      */
     private $groupHierarchy;
+    /**
+     * @var array
+     */
+    private $allowedParamConverters;
 
-    public function __construct(Reader $reader, GroupHierarchy $groupHierarchy)
-    {
+    /**
+     * @param \Doctrine\Common\Annotations\Reader $reader
+     * @param \Draw\DrawBundle\Serializer\GroupHierarchy $groupHierarchy
+     * @param array $allowedParamConverters
+     */
+    public function __construct(
+        Reader $reader,
+        GroupHierarchy $groupHierarchy,
+        array $allowedParamConverters = ["fos_rest.request_body"]
+    ) {
         $this->reader = $reader;
         $this->groupHierarchy = $groupHierarchy;
+        $this->allowedParamConverters = $allowedParamConverters;
     }
 
     /**
@@ -156,7 +169,7 @@ class ParamConverterExtractor implements ExtractorInterface
                     return false;
                 }
 
-                return $converter->getConverter() == "fos_rest.request_body";
+                return in_array($converter->getConverter(), $this->allowedParamConverters);
             }
         );
 

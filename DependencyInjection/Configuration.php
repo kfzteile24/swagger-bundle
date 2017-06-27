@@ -23,6 +23,13 @@ class Configuration implements ConfigurationInterface
         $rootNode->setBuilder(new AllowExtraPropertiesNodeBuilder());
 
         $rootNode->children()
+            ->arrayNode('allowedParamConverters')
+                ->prototype('array')
+                    ->children()
+                        ->scalarNode('name')->isRequired()->end()
+                    ->end()
+                ->end()
+            ->end()
             ->arrayNode('definitionAliases')
                 ->defaultValue(array())
                 ->prototype("array")

@@ -9,6 +9,7 @@ parameters:
     draw.swagger.extractor.param_converter_extractor.class: Draw\SwaggerBundle\Extractor\ParamConverterExtractor
     draw.swagger.extrator.type_schema_extractor.class: Draw\Swagger\Extraction\Extractor\TypeSchemaExtractor
     draw.swagger.extrator.fos_rest_view_operation_extractor.class: Draw\SwaggerBundle\Extractor\FOSRestViewOperationExtractor
+    draw.swagger.extractor.param_converter_extractor.allowed: ["fos_rest.request_body"]
 
 services:
     draw.swagger:
@@ -102,7 +103,7 @@ services:
 
     draw.swagger.extractor.param_converter_extractor:
         class: '%draw.swagger.extractor.param_converter_extractor.class%'
-        arguments: ['@annotations.reader', '@draw.serializer.group_hierarchy']
+        arguments: ['@annotations.reader', '@draw.serializer.group_hierarchy', '%draw.swagger.extractor.param_converter_extractor.allowed%']
         tags:
             - { name: swagger.extractor }
 
